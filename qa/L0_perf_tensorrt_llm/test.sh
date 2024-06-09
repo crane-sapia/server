@@ -52,7 +52,7 @@ function clone_tensorrt_llm_backend_repo {
 }
 
 # Update Open MPI to a version compatible with SLURM.
-function upgrade_openmpi {
+function ex_upgrade_openmpi {
     cd /tmp/
     local CURRENT_VERSION=$(mpirun --version 2>&1 | awk '/Open MPI/ {gsub(/rc[0-9]+/, "", $NF); print $NF}')
 
@@ -70,7 +70,7 @@ function upgrade_openmpi {
             echo "Failed to uninstall Open MPI ${CURRENT_VERSION}"
             exit 1
         }
-        rm -rf /opt/hpcx/ompi/ /usr/local/mpi/ || {
+        rm -r /opt/hpcx/ompi/ /usr/local/mpi || {
             echo "Failed to remove Open MPI ${CURRENT_VERSION} installation directories"
             exit 1
         }
@@ -81,6 +81,50 @@ function upgrade_openmpi {
     fi
 
     # Install SLURM supported Open MPI version
+    wget "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.1.tar.gz" || {
+        echo "Failed to download Open MPI 5.0.1"
+        exit 1
+    }
+    rm -rf openmpi-5.0.1 && tar -xzf openmpi-5.0.1.tar.gz && cd openmpi-5.0.1 || {
+        echo "Failed to extract Open MPI 5.0.1"
+        exit 1
+    }
+    ./configure --prefix=/opt/hpcx/ompi/ && make && make install || {
+        echo "Failed to install Open MPI 5.0.1"
+        exit 1
+    }
+
+    # Update environment variables
+    if ! grep -q '/opt/hpcx/ompi/bin' ~/.bashrc; then
+        echo 'export PATH=/opt/hpcx/ompi/bin:$PATH' >>~/.bashrc
+    fi
+
+    if ! grep -q '/opt/hpcx/ompi/lib' ~/.bashrc; then
+        echo 'export LD_LIBRARY_PATH=/opt/hpcx/ompi/lib:$LD_LIBRARY_PATH' >>~/.bashrc
+    fi
+    ldconfig
+    source ~/.bashrc
+    cd "$BASE_DIR"
+    mpirun --version
+}
+
+# Update Open MPI to a version compatible with SLURM.
+function upgrade_openmpi {
+    local CURRENT_VERSION=$(mpirun --version 2>&1 | awk '/Open MPI/ {gsub(/rc[0-9]+/, "", $NF); print $NF}')
+
+    if [ -n "$CURRENT_VERSION" ] && dpkg --compare-versions "$CURRENT_VERSION" lt "5.0.1"; then
+        # Uninstall the current version of Open MPI
+        rm -r /opt/hpcx/ompi/ /usr/local/mpi && rm -r /usr/lib/$(gcc -print-multiarch)/openmpi || {
+            echo "Failed to remove Open MPI ${CURRENT_VERSION} installation directories"
+            exit 1
+        }
+    else
+        echo "Installed Open MPI version is not less than 5.0.1. Skipping the upgrade."
+        return
+    fi
+
+    # Install SLURM supported Open MPI version
+    cd /tmp/
     wget "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.1.tar.gz" || {
         echo "Failed to download Open MPI 5.0.1"
         exit 1
