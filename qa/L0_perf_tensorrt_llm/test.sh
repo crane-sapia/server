@@ -114,7 +114,7 @@ function upgrade_openmpi {
 
     if [ -n "$CURRENT_VERSION" ] && dpkg --compare-versions "$CURRENT_VERSION" lt "5.0.1"; then
         # Uninstall the current version of Open MPI
-        rm -r /opt/hpcx/ompi/ /usr/local/mpi && rm -r /usr/lib/$(gcc -print-multiarch)/openmpi || {
+        rm -r /opt/hpcx/ompi/ /usr/local/mpi && rm -rf /usr/lib/$(gcc -print-multiarch)/openmpi || {
             echo "Failed to remove Open MPI ${CURRENT_VERSION} installation directories"
             exit 1
         }
