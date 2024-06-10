@@ -74,10 +74,7 @@ MODEL_NAMES="${TRT_MODEL_NAME} ${TF_MODEL_NAME} ${ONNX_MODEL_NAME} ${PYT_MODEL_N
 if [ "$ARCH" == "aarch64" ]; then
     OPTIMIZED_MODEL_NAMES="${TFAMP_MODEL_NAME}"
 else
-    # FIXME [DLIS-6660] Update TF image models to support dynamic batching and add ${TFTRT_MODEL_NAME} to OPTIMIZED_MODEL_NAMES
-    # Currently, models cannot load with TF-TRT optimization due to the removal of 
-    # implicit batch support in TensorRT v10 onwards
-    OPTIMIZED_MODEL_NAMES="${TFAMP_MODEL_NAME} ${ONNXTRT_MODEL_NAME}"
+    OPTIMIZED_MODEL_NAMES="${TFTRT_MODEL_NAME} ${TFAMP_MODEL_NAME} ${ONNXTRT_MODEL_NAME}"
 fi
 
 # Create optimized models
