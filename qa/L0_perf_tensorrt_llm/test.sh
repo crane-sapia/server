@@ -275,7 +275,7 @@ function kill_server {
 # Install perf_analyzer
 pip3 install setuptools==69.5.1 tritonclient nvidia-ml-py3
 
-#upgrade_openmpi
+upgrade_openmpi
 clone_tensorrt_llm_backend_repo
 build_gpt2_base_model
 build_gpt2_tensorrt_engine
