@@ -215,14 +215,14 @@ function kill_server {
     done
 }
 
-# Install perf_analyzer
-pip3 install tritonclient nvidia-ml-py3
-
 upgrade_openmpi
 clone_tensorrt_llm_backend_repo
 build_gpt2_base_model
 build_gpt2_tensorrt_engine
 prepare_model_repository
+
+# Install perf_analyzer
+pip3 install tritonclient nvidia-ml-py3
 
 ARCH="amd64"
 STATIC_BATCH=1
