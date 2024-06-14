@@ -28,8 +28,7 @@
 RET=0
 BASE_DIR=$(pwd)
 NUM_GPUS=${NUM_GPUS:=1}
-#TENSORRTLLM_BACKEND_REPO_TAG=${TENSORRTLLM_BACKEND_REPO_TAG:="main"}
-TENSORRTLLM_BACKEND_REPO_TAG=main
+TENSORRTLLM_BACKEND_REPO_TAG=${TENSORRTLLM_BACKEND_REPO_TAG:="main"}
 TRT_ROOT="/usr/local/tensorrt"
 
 MODEL_NAME="gpt2_tensorrt_llm"
@@ -53,74 +52,17 @@ function clone_tensorrt_llm_backend_repo {
 }
 
 # Update Open MPI to a version compatible with SLURM.
-function ex_upgrade_openmpi {
-    cd /tmp/
-    local CURRENT_VERSION=$(mpirun --version 2>&1 | awk '/Open MPI/ {gsub(/rc[0-9]+/, "", $NF); print $NF}')
-
-    if [ -n "$CURRENT_VERSION" ] && dpkg --compare-versions "$CURRENT_VERSION" lt "5.0.1"; then
-        # Uninstall the current version of Open MPI
-        wget "https://download.open-mpi.org/release/open-mpi/v$(echo "${CURRENT_VERSION}" | awk -F. '{print $1"."$2}')/openmpi-${CURRENT_VERSION}.tar.gz" || {
-            echo "Failed to download Open MPI ${CURRENT_VERSION}"
-            exit 1
-        }
-        rm -rf "openmpi-${CURRENT_VERSION}" && tar -xzf "openmpi-${CURRENT_VERSION}.tar.gz" && cd "openmpi-${CURRENT_VERSION}" || {
-            echo "Failed to extract Open MPI ${CURRENT_VERSION}"
-            exit 1
-        }
-        unset PMIX_VERSION && ./configure --prefix=/opt/hpcx/ompi/ && make uninstall || {
-            echo "Failed to uninstall Open MPI ${CURRENT_VERSION}"
-            exit 1
-        }
-        rm -r /opt/hpcx/ompi/ /usr/local/mpi || {
-            echo "Failed to remove Open MPI ${CURRENT_VERSION} installation directories"
-            exit 1
-        }
-        cd ../ && rm -r openmpi-${CURRENT_VERSION}
-    else
-        echo "Installed Open MPI version is not less than 5.0.1. Skipping the upgrade."
-        return
-    fi
-
-    # Install SLURM supported Open MPI version
-    wget "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.1.tar.gz" || {
-        echo "Failed to download Open MPI 5.0.1"
-        exit 1
-    }
-    rm -rf openmpi-5.0.1 && tar -xzf openmpi-5.0.1.tar.gz && cd openmpi-5.0.1 || {
-        echo "Failed to extract Open MPI 5.0.1"
-        exit 1
-    }
-    ./configure --prefix=/opt/hpcx/ompi/ && make && make install || {
-        echo "Failed to install Open MPI 5.0.1"
-        exit 1
-    }
-
-    # Update environment variables
-    if ! grep -q '/opt/hpcx/ompi/bin' ~/.bashrc; then
-        echo 'export PATH=/opt/hpcx/ompi/bin:$PATH' >>~/.bashrc
-    fi
-
-    if ! grep -q '/opt/hpcx/ompi/lib' ~/.bashrc; then
-        echo 'export LD_LIBRARY_PATH=/opt/hpcx/ompi/lib:$LD_LIBRARY_PATH' >>~/.bashrc
-    fi
-    ldconfig
-    source ~/.bashrc
-    cd "$BASE_DIR"
-    mpirun --version
-}
-
-# Update Open MPI to a version compatible with SLURM.
 function upgrade_openmpi {
     local CURRENT_VERSION=$(mpirun --version 2>&1 | awk '/Open MPI/ {gsub(/rc[0-9]+/, "", $NF); print $NF}')
 
     if [ -n "$CURRENT_VERSION" ] && dpkg --compare-versions "$CURRENT_VERSION" lt "5.0.1"; then
         # Uninstall the current version of Open MPI
         rm -r /opt/hpcx/ompi/ /usr/local/mpi && rm -rf /usr/lib/$(gcc -print-multiarch)/openmpi || {
-            echo "Failed to remove Open MPI ${CURRENT_VERSION} installation directories"
+            echo "Failed to uninstall the existing Open MPI version $CURRENT_VERSION."
             exit 1
         }
     else
-        echo "Installed Open MPI version is not less than 5.0.1. Skipping the upgrade."
+        echo "Installed Open MPI version ($CURRENT_VERSION) is not less than 5.0.1. Skipping the upgrade."
         return
     fi
 
@@ -274,7 +216,7 @@ function kill_server {
 }
 
 # Install perf_analyzer
-pip3 install setuptools==69.5.1 tritonclient nvidia-ml-py3
+pip3 install tritonclient nvidia-ml-py3
 
 upgrade_openmpi
 clone_tensorrt_llm_backend_repo
